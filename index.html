@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TC Delivery</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Sarabun', sans-serif; background: #f5f5f5; }
+    
+    .header {
+      background: #06C755;
+      color: white;
+      padding: 16px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .section { padding: 16px; }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      color: #333;
+    }
+    
+    /* ร้านอาหาร */
+    .restaurant-list { display: flex; flex-direction: column; gap: 12px; }
+    
+    .restaurant-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    
+    .restaurant-card.selected {
+      border-color: #06C755;
+      background: #f0fff4;
+    }
+    
+    .restaurant-name { font-size: 16px; font-weight: bold; color: #333; }
+    .restaurant-area { font-size: 13px; color: #888; margin-top: 4px; }
+    .restaurant-fee { font-size: 13px; color: #06C755; margin-top: 4px; }
+    
+    /* เมนู */
+    .menu-list { display: flex; flex-direction: column; gap: 10px; }
+    
+    .menu-item {
+      background: white;
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .menu-name { font-size: 15px; font-weight: bold; color: #333; }
+    .menu-desc { font-size: 12px; color: #888; margin-top: 2px; }
+    .menu-price { font-size: 15px; color: #06C755; font-weight: bold; }
+    
+    .qty-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    
+    .qty-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid #06C755;
+      background: white;
+      color: #06C755;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    
+    .qty-num { font-size: 16px; font-weight: bold; min-width: 20px; text-align: center; }
+    
+    /* ตะกร้า */
+    .cart-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #06C755;
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      display: none;
+    }
+    
+    .cart-bar.show { display: flex; }
+    .cart-count { font-size: 14px; }
+    .cart-total { font-size: 16px; font-weight: bold; }
+    
+    /* สรุปออร์เดอร์ */
+    .order-summary {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .order-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+    
+    .order-row:last-child { border-bottom: none; }
+    .order-total { font-weight: bold; font-size: 16px; color: #06C755; }
+    
+    /* ที่อยู่ */
+    .input-group { margin-bottom: 12px; }
+    .input-label { font-size: 14px; color: #555; margin-bottom: 6px; display: block; }
+    .input-field {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'Sarabun', sans-serif;
+    }
+    
+    textarea.input-field { height: 80px; resize: none; }
+    
+    /* ปุ่มชำระเงิน */
+    .payment-options { display: flex; gap: 10px; margin-bottom: 16px; }
+    
+    .payment-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid #ddd;
+      background: white;
+      font-size: 14px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    
+    .payment-btn.selected {
+      border-color: #06C755;
+      background: #f0fff4;
+      color: #06C755;
+      font-weight: bold;
+    }
+    
+    .confirm-btn {
+      width: 100%;
+      padding: 16px;
+      background: #06C755;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 80px;
+    }
+    
+    .confirm-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+      font-size: 16px;
+    }
+    
+    /* Page */
+    .page { display: none; }
+    .page.active { display: block; }
+    
+    /* Success */
+    .success-page {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    
+    .success-icon { font-size: 80px; margin-bottom: 20px; }
+    .success-title { font-size: 24px; font-weight: bold; color: #06C755; margin-bottom: 10px; }
+    .success-order { font-size: 16px; color: #555; margin-bottom: 30px; }
+    
+    .back-btn {
+      padding: 14px 40px;
+      background: #06C755;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">🍔 TC Delivery</div>
+
+<!-- หน้า 1: เลือกร้าน -->
+<div id="page-restaurant" class="page active">
+  <div class="section">
+    <div class="section-title">🏪 เลือกร้านอาหาร</div>
+    <div id="restaurant-list" class="restaurant-list">
+      <div class="loading">⏳ กำลังโหลดร้านอาหาร...</div>
+    </div>
+  </div>
+</div>
+
+<!-- หน้า 2: เลือกเมนู -->
+<div id="page-menu" class="page">
+  <div class="section">
+    <div class="section-title" id="menu-title">🍜 เลือกเมนู</div>
+    <div id="menu-list" class="menu-list">
+      <div class="loading">⏳ กำลังโหลดเมนู...</div>
+    </div>
+  </div>
+  <div style="height: 80px;"></div>
+</div>
+
+<!-- หน้า 3: ยืนยันออร์เดอร์ -->
+<div id="page-confirm" class="page">
+  <div class="section">
+    <div class="section-title">📋 สรุปออร์เดอร์</div>
+    <div id="order-summary" class="order-summary"></div>
+  </div>
+  
+  <div class="section">
+    <div class="section-title">📍 ที่อยู่จัดส่ง</div>
+    <div class="input-group">
+      <label class="input-label">ชื่อผู้รับ</label>
+      <input type="text" id="input-name" class="input-field" placeholder="ชื่อ-นามสกุล">
+    </div>
+    <div class="input-group">
+      <label class="input-label">เบอร์โทรศัพท์</label>
+      <input type="tel" id="input-phone" class="input-field" placeholder="08x-xxx-xxxx">
+    </div>
+    <div class="input-group">
+      <label class="input-label">ที่อยู่จัดส่ง</label>
+      <textarea id="input-address" class="input-field" placeholder="บ้านเลขที่ หมู่ ซอย ถนน"></textarea>
+    </div>
+  </div>
+  
+  <div class="section">
+    <div class="section-title">💳 วิธีชำระเงิน</div>
+    <div class="payment-options">
+      <div class="payment-btn selected" id="pay-cod" onclick="selectPayment('cod')">
+        💵 เก็บปลายทาง
+      </div>
+      <div class="payment-btn" id="pay-online" onclick="selectPayment('online')">
+        📱 โอนเงิน
+      </div>
+    </div>
+    <button class="confirm-btn" id="confirm-btn" onclick="submitOrder()">
+      ✅ ยืนยันการสั่งอาหาร
+    </button>
+  </div>
+</div>
+
+<!-- หน้า 4: สำเร็จ -->
+<div id="page-success" class="page">
+  <div class="success-page">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">สั่งอาหารสำเร็จ!</div>
+    <div class="success-order" id="success-detail"></div>
+    <button class="back-btn" onclick="showPage('page-restaurant')">
+      สั่งอาหารอีกครั้ง
+    </button>
+  </div>
+</div>
+
+<!-- ตะกร้า -->
+<div class="cart-bar" id="cart-bar" onclick="showPage('page-confirm')">
+  <div class="cart-count" id="cart-count">0 รายการ</div>
+  <div>ดูตะกร้า →</div>
+  <div class="cart-total" id="cart-total">฿0</div>
+</div>
+
+<script>
+// ==========================================
+// CONFIG
+// ==========================================
+var LIFF_ID = "2009898131-r04F0yrZ";
+var GAS_URL = "YOUR_GAS_URL"; // จะใส่ทีหลัง
+
+// ==========================================
+// ตัวแปร Global
+// ==========================================
+var userId = "";
+var displayName = "";
+var selectedRestaurant = null;
+var cart = {};
+var paymentType = "cod";
+
+// ==========================================
+// เริ่มต้น LIFF
+// ==========================================
+window.onload = async function() {
+  await liff.init({ liffId: LIFF_ID });
+  
+  if (!liff.isLoggedIn()) {
+    liff.login();
+    return;
+  }
+  
+  var profile = await liff.getProfile();
+  userId = profile.userId;
+  displayName = profile.displayName;
+  
+  loadRestaurants();
+};
+
+// ==========================================
+// โหลดร้านอาหารจาก GAS
+// ==========================================
+function loadRestaurants() {
+  fetch(GAS_URL + "?action=getRestaurants")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      renderRestaurants(data);
+    })
+    .catch(function(err) {
+      // ถ้าโหลดไม่ได้ ใช้ข้อมูลตัวอย่างก่อน
+      renderRestaurants(sampleRestaurants());
+    });
+}
+
+// ==========================================
+// ข้อมูลตัวอย่าง (ใช้ระหว่างทดสอบ)
+// ==========================================
+function sampleRestaurants() {
+  return [
+    { id: "R001", name: "ข้าวมันไก่ดี", area: "ใจกลางอำเภอ", deliveryFee: 20, status: "open" },
+    { id: "R002", name: "ก๋วยเตี๋ยวเรือนาย", area: "ตลาดเช้า", deliveryFee: 25, status: "open" },
+    { id: "R003", name: "ส้มตำป้าแดง", area: "ถนนหลัก", deliveryFee: 20, status: "open" }
+  ];
+}
+
+function sampleMenus(restaurantId) {
+  var menus = {
+    "R001": [
+      { id: "M001", name: "ข้าวมันไก่", desc: "ข้าวมันไก่ต้ม", price: 50, category: "อาหาร" },
+      { id: "M002", name: "ข้าวมันไก่ทอด", desc: "ข้าวมันไก่ทอดกรอบ", price: 55, category: "อาหาร" },
+      { id: "M003", name: "น้ำซุป", desc: "น้ำซุปไก่ร้อนๆ", price: 15, category: "เครื่องดื่ม" }
+    ],
+    "R002": [
+      { id: "M004", name: "ก๋วยเตี๋ยวน้ำใส", desc: "เส้นใหญ่/เล็ก", price: 50, category: "อาหาร" },
+      { id: "M005", name: "ก๋วยเตี๋ยวต้มยำ", desc: "รสจัดจ้าน", price: 55, category: "อาหาร" }
+    ],
+    "R003": [
+      { id: "M006", name: "ส้มตำไทย", desc: "รสชาติกลมกล่อม", price: 45, category: "อาหาร" },
+      { id: "M007", name: "ส้มตำปู", desc: "ปูเค็มรสเด็ด", price: 55, category: "อาหาร" },
+      { id: "M008", name: "ข้าวเหนียว", desc: "ข้าวเหนียวนึ่ง", price: 10, category: "อาหาร" }
+    ]
+  };
+  return menus[restaurantId] || [];
+}
+
+// ==========================================
+// แสดงร้านอาหาร
+// ==========================================
+function renderRestaurants(restaurants) {
+  var html = "";
+  restaurants.forEach(function(r) {
+    if (r.status != "open") return;
+    html += '<div class="restaurant-card" onclick="selectRestaurant(' + 
+      JSON.stringify(r).replace(/"/g, "&quot;") + ')">' +
+      '<div>' +
+      '<div class="restaurant-name">' + r.name + '</div>' +
+      '<div class="restaurant-area">📍 ' + r.area + '</div>' +
+      '<div class="restaurant-fee">🛵 ค่าส่ง ' + r.deliveryFee + ' บาท</div>' +
+      '</div>' +
+      '<div style="font-size:24px">›</div>' +
+      '</div>';
+  });
+  document.getElementById("restaurant-list").innerHTML = html;
+}
+
+// ==========================================
+// เลือกร้าน
+// ==========================================
+function selectRestaurant(restaurant) {
+  selectedRestaurant = restaurant;
+  cart = {};
+  updateCartBar();
+  
+  document.getElementById("menu-title").innerText = "🍜 " + restaurant.name;
+  document.getElementById("menu-list").innerHTML = '<div class="loading">⏳ กำลังโหลดเมนู...</div>';
+  
+  showPage("page-menu");
+  
+  // โหลดเมนู
+  fetch(GAS_URL + "?action=getMenus&restaurantId=" + restaurant.id)
+    .then(function(r) { return r.json(); })
+    .then(function(data) { renderMenus(data); })
+    .catch(function() { renderMenus(sampleMenus(restaurant.id)); });
+}
+
+// ==========================================
+// แสดงเมนู
+// ==========================================
+function renderMenus(menus) {
+  var html = "";
+  menus.forEach(function(m) {
+    html += '<div class="menu-item">' +
+      '<div style="flex:1">' +
+      '<div class="menu-name">' + m.name + '</div>' +
+      '<div class="menu-desc">' + m.desc + '</div>' +
+      '<div class="menu-price">฿' + m.price + '</div>' +
+      '<div class="qty-control">' +
+      '<button class="qty-btn" onclick="changeQty(\'' + m.id + '\', -1)">−</button>' +
+      '<span class="qty-num" id="qty-' + m.id + '">0</span>' +
+      '<button class="qty-btn" onclick="changeQty(\'' + m.id + '\', 1, ' + JSON.stringify(m).replace(/"/g, "&quot;") + ')">+</button>' +
+      '</div>' +
+      '</div>' +
+      '</div>';
+  });
+  document.getElementById("menu-list").innerHTML = html;
+}
+
+// ==========================================
+// เพิ่ม/ลดจำนวน
+// ==========================================
+function changeQty(menuId, delta, menuData) {
+  if (menuData && !cart[menuId]) {
+    cart[menuId] = { ...menuData, qty: 0 };
+  }
+  if (!cart[menuId]) return;
+  
+  cart[menuId].qty += delta;
+  if (cart[menuId].qty < 0) cart[menuId].qty = 0;
+  if (cart[menuId].qty == 0) delete cart[menuId];
+  
+  var el = document.getElementById("qty-" + menuId);
+  if (el) el.innerText = cart[menuId] ? cart[menuId].qty : 0;
+  
+  updateCartBar();
+}
+
+// ==========================================
+// อัปเดตตะกร้า
+// ==========================================
+function updateCartBar() {
+  var total = 0;
+  var count = 0;
+  Object.values(cart).forEach(function(item) {
+    total += item.price * item.qty;
+    count += item.qty;
+  });
+  
+  document.getElementById("cart-count").innerText = count + " รายการ";
+  document.getElementById("cart-total").innerText = "฿" + total;
+  
+  var cartBar = document.getElementById("cart-bar");
+  if (count > 0) {
+    cartBar.classList.add("show");
+  } else {
+    cartBar.classList.remove("show");
+  }
+}
+
+// ==========================================
+// แสดงสรุปออร์เดอร์
+// ==========================================
+function renderOrderSummary() {
+  var subtotal = 0;
+  var html = "";
+  
+  Object.values(cart).forEach(function(item) {
+    var itemTotal = item.price * item.qty;
+    subtotal += itemTotal;
+    html += '<div class="order-row">' +
+      '<span>' + item.name + ' x' + item.qty + '</span>' +
+      '<span>฿' + itemTotal + '</span>' +
+      '</div>';
+  });
+  
+  var deliveryFee = selectedRestaurant ? selectedRestaurant.deliveryFee : 0;
+  var total = subtotal + deliveryFee;
+  
+  html += '<div class="order-row">' +
+    '<span>ค่าส่ง</span><span>฿' + deliveryFee + '</span></div>';
+  html += '<div class="order-row order-total">' +
+    '<span>รวมทั้งหมด</span><span>฿' + total + '</span></div>';
+  
+  document.getElementById("order-summary").innerHTML = html;
+}
+
+// ==========================================
+// เลือกวิธีชำระเงิน
+// ==========================================
+function selectPayment(type) {
+  paymentType = type;
+  document.getElementById("pay-cod").classList.toggle("selected", type == "cod");
+  document.getElementById("pay-online").classList.toggle("selected", type == "online");
+}
+
+// ==========================================
+// ส่งออร์เดอร์
+// ==========================================
+function submitOrder() {
+  var name = document.getElementById("input-name").value.trim();
+  var phone = document.getElementById("input-phone").value.trim();
+  var address = document.getElementById("input-address").value.trim();
+  
+  if (!name || !phone || !address) {
+    alert("กรุณากรอกข้อมูลให้ครบครับ");
+    return;
+  }
+  
+  var btn = document.getElementById("confirm-btn");
+  btn.disabled = true;
+  btn.innerText = "⏳ กำลังส่งออร์เดอร์...";
+  
+  var subtotal = 0;
+  var items = [];
+  Object.values(cart).forEach(function(item) {
+    subtotal += item.price * item.qty;
+    items.push({
+      menuId: item.id,
+      menuName: item.name,
+      qty: item.qty,
+      price: item.price,
+      total: item.price * item.qty
+    });
+  });
+  
+  var deliveryFee = selectedRestaurant.deliveryFee;
+  var total = subtotal + deliveryFee;
+  
+  var orderData = {
+    action: "submitOrder",
+    userId: userId,
+    displayName: displayName,
+    restaurantId: selectedRestaurant.id,
+    restaurantName: selectedRestaurant.name,
+    items: items,
+    subtotal: subtotal,
+    deliveryFee: deliveryFee,
+    total: total,
+    paymentType: paymentType,
+    name: name,
+    phone: phone,
+    address: address
+  };
+  
+  fetch(GAS_URL, {
+    method: "POST",
+    body: JSON.stringify(orderData)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    document.getElementById("success-detail").innerText = 
+      "หมายเลขออร์เดอร์: " + res.orderId + "\nร้าน: " + selectedRestaurant.name + 
+      "\nยอดรวม: ฿" + total + "\nระบบจะแจ้งเตือนเมื่ออาหารพร้อมครับ";
+    showPage("page-success");
+    cart = {};
+    updateCartBar();
+  })
+  .catch(function(err) {
+    alert("เกิดข้อผิดพลาด กรุณาลองใหม่ครับ");
+    btn.disabled = false;
+    btn.innerText = "✅ ยืนยันการสั่งอาหาร";
+  });
+}
+
+// ==========================================
+// เปลี่ยนหน้า
+// ==========================================
+function showPage(pageId) {
+  document.querySelectorAll(".page").forEach(function(p) {
+    p.classList.remove("active");
+  });
+  document.getElementById(pageId).classList.add("active");
+  
+  if (pageId == "page-confirm") {
+    renderOrderSummary();
+  }
+  
+  window.scrollTo(0, 0);
+}
+</script>
+
+</body>
+</html>
