@@ -396,10 +396,7 @@ function selectRestaurant(restaurant) {
   document.getElementById("menu-title").innerText = "🍜 " + restaurant.name;
   document.getElementById("menu-list").innerHTML = '<div class="loading">⏳ กำลังโหลดเมนู...</div>';
   showPage("page-menu");
-  fetch(GAS_URL + "?action=getMenus&restaurantId=" + restaurant.id)
-    .then(function(r) { return r.json(); })
-    .then(function(data) { renderMenus(data); })
-    .catch(function() { renderMenus(sampleMenus(restaurant.id)); });
+  renderMenus(sampleMenus(restaurant.id));
 }
 
 // ==========================================
