@@ -336,10 +336,7 @@ window.onload = async function() {
 // โหลดร้านอาหาร
 // ==========================================
 function loadRestaurants() {
-  fetch(GAS_URL + "?action=getRestaurants")
-    .then(function(r) { return r.json(); })
-    .then(function(data) { renderRestaurants(data); })
-    .catch(function() { renderRestaurants(sampleRestaurants()); });
+  renderRestaurants(sampleRestaurants());
 }
 
 function sampleRestaurants() {
